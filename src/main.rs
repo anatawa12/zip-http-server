@@ -1,15 +1,15 @@
+use clap::Clap;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Response};
 use simple_logger::SimpleLogger;
 use std::convert::Infallible;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use zip::result::ZipError;
 use zip::ZipArchive;
-use std::net::IpAddr;
-use clap::Clap;
 
 #[derive(Clap)]
 #[clap(version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
