@@ -2,25 +2,38 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Response};
 use simple_logger::SimpleLogger;
 use std::convert::Infallible;
-use std::env::args_os;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::sync::Arc;
 use zip::result::ZipError;
 use zip::ZipArchive;
+use std::net::IpAddr;
+use clap::Clap;
+
+#[derive(Clap)]
+#[clap(version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
+struct Opts {
+    zip_file: PathBuf,
+    /// Sets a custom config file. Could have been an Option<T> with no default too
+    #[clap(short, long, default_value = "0.0.0.0")]
+    address: IpAddr,
+    /// Sets a custom config file. Could have been an Option<T> with no default too
+    #[clap(short, long, default_value = "80")]
+    port: u16,
+}
 
 #[tokio::main]
 async fn main() {
     SimpleLogger::new().init().unwrap();
+    let options: Opts = Opts::parse();
 
     log::info!("starting server...");
 
-    let mut args = args_os();
-    args.next(); // executable name
-    let zip_file: PathBuf = args.next().expect("no path to zip file").into();
+    let zip_file: PathBuf = options.zip_file;
     log::info!("using zip {}", &zip_file.display());
     let zip_file: Arc<PathBuf> = Arc::new(zip_file).into();
+
     // And a MakeService to handle each connection...
     let make_svc = make_service_fn(move |_| {
         let zip_file = zip_file.clone();
@@ -49,7 +62,7 @@ async fn main() {
         }
     });
 
-    let server = hyper::Server::bind(&([0, 0, 0, 0], 80).into()).serve(make_svc);
+    let server = hyper::Server::bind(&(options.address, options.port).into()).serve(make_svc);
 
     log::info!("server started!");
     // Run forever-ish...
