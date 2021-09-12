@@ -13,4 +13,4 @@ COPY --from=builder /project/target/release/zip-http-server /zip-http-server
 
 USER nonroot
 
-CMD ["/zip-http-server"]
+CMD ["/zip-http-server", "/root.zip"]
