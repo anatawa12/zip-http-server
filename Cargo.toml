@@ -3,7 +3,20 @@ name = "zip-http-server"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = [
+    "anatawa12",
+]
+description = "The http server exports contents in zip file."
+readme = "README.md"
+license = "Apache-2.0 OR MIT"
+keywords = ["http", "zip"]
+categories = ["web-programming::http-server"]
+include = [
+    "README.md",
+    "src/**",
+    "LICENSE-*",
+    "Cargo*",
+]
 
 [dependencies]
 clap = "3.0.0-beta.4"

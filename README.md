@@ -1,3 +1,3 @@
 # Zip Http Server
 
-The http server exports contents in zip files.
+The http server exports contents in zip file.
