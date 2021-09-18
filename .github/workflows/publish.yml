@@ -24,8 +24,15 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           target-dir: target
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: anatawa12
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: update version name
+        id: setup
         run: |-
           set-git-user anatawa12-bot
           # update version name
@@ -35,6 +42,7 @@ jobs:
             exit 1
           fi
           VERSION="$(version-unsnapshot "$VERSION")"
+          echo "::set-output name=version::$VERSION"
           set-version "$VERSION"
           cargo metadata --format-version=1 > /dev/null
           generate-changelog -v "$VERSION" --date-for-unreleased
@@ -42,24 +50,29 @@ jobs:
           git add .
           git commit -m "v$VERSION"
           git tag "v$VERSION"
-      - name: Build and publish
+
+      - name: Check Build crate
+        run: cargo package
+
+      - name: Docker Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          context: .
+          tags: |-
+            ghcr.io/anatawa12/zip-http-server:latest
+            ghcr.io/anatawa12/zip-http-server:${{ steps.setup.outputs.version }}
+
+      - name: Publish crate
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |-
-          # login
-          echo $GITHUB_TOKEN | docker login ghcr.io -u anatawa12 --password-stdin
-          # data
-          container=ghcr.io/anatawa12/zip-http-server
-          version="$(get-version)"
-          # build
-          docker build -t "$container":latest -t "$container:$version" .
-          cargo package
-          # publish
-          docker push "$container":latest
-          docker push "$container:$version"
-          cargo publish --no-verify # it's verified on cargo package so no-verify
+        run: cargo publish --no-verify # it's verified on cargo package so no-verify
+
+      - name: Publish version on git
+        run:
           git push && git push --tags
+
       - name: Update To Next Version
         run: |
           VERSION="$(get-version)"
