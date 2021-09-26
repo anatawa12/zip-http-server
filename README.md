@@ -1,6 +1,6 @@
 # Zip Http Server
 
-[![a12 maintenance: Slowly](https://anatawa12.com/short.php?q=a12-slowly-svg)](https://anatawa12.com/short.php?q=a12-slowly-doc)
+[![a12 maintenance: Slowly](https://api.anatawa12.com/short/a12-slowly-svg)](https://api.anatawa12.com/short/a12-slowly-doc)
 [![Crates.io (latest)](https://img.shields.io/crates/dv/zip-http-server)](https://crates.io/crates/zip-http-server)
 [![github packages download](https://img.shields.io/badge/packages-download-green?logo=github)](https://github.com/anatawa12/zip-http-server/pkgs/container/zip-http-server)
 
