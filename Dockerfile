@@ -13,7 +13,7 @@ FROM gcr.io/distroless/cc-debian10
 COPY --from=builder /project/target/release/zip-http-server /zip-http-server
 ARG TARGETARCH
 ARG TARGETVARIANT
-ADD --chmod=555 "https://files.anatawa12.com/tini-download/?arch=${TARGETARCH}&variant=${TARGETVARIANT}" /tini
+ADD --chmod=555 "https://api.anatawa12.com/short/tini-download?arch=${TARGETARCH}&variant=${TARGETVARIANT}" /tini
 
 USER nonroot
 
