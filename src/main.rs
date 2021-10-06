@@ -1,3 +1,5 @@
+mod socket_address;
+
 use clap::Clap;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Response};
