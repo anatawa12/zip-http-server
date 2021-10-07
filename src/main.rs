@@ -1,6 +1,6 @@
 mod socket_address;
 
-use crate::socket_address::SocketAddress;
+use crate::socket_address::{MultiIncoming, SocketAddress};
 use clap::Clap;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Response};
@@ -18,9 +18,9 @@ use zip::ZipArchive;
 #[clap(version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
 struct Opts {
     zip_file: PathBuf,
-    /// Sets a custom config file. Could have been an Option<T> with no default too
-    #[clap(short, long, default_value = ":80")]
-    address: SocketAddress,
+    /// The address list to listen
+    #[clap(short, long, multiple_occurrences = true, multiple_values = false, default_value = ":80")]
+    address: Vec<SocketAddress>,
 }
 
 #[tokio::main]
@@ -62,15 +62,22 @@ async fn main() {
         }
     });
 
-    let address = options.address;
+    if options.address.is_empty() {
+        log::error!("no addresses for listen specified");
+        exit(-1);
+    }
 
-    let server = address
-        .clone()
-        .bind_hyper()
-        .unwrap_or_else(|e| {
+    let mut incomes = Vec::with_capacity(options.address.len());
+    for address in options.address {
+        incomes.push(address.clone().bind().unwrap_or_else(|e| {
             log::error!("can't listen {}: {}", &address, e);
             exit(-1);
-        })
+        }));
+        log::info!("listening on {}", address);
+    }
+
+    let server = MultiIncoming::new(incomes)
+        .bind_hyper()
         .serve(make_svc);
 
     log::info!("server started!");

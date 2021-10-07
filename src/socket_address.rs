@@ -45,10 +45,6 @@ impl SocketAddress {
             UnixDomainSocket(path) => SocketIncoming::bind(path).map(Incoming::UnixDomainSocket),
         }
     }
-
-    pub(crate) fn bind_hyper(self) -> io::Result<HyperBuilder<Incoming>> {
-        self.bind().map(HyperServer::builder)
-    }
 }
 
 impl FromStr for SocketAddress {
