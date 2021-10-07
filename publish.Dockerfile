@@ -8,4 +8,5 @@ ADD --chmod=555 "https://api.anatawa12.com/short/tini-download?arch=${TARGETARCH
 
 USER nonroot
 
-CMD ["/tini", "--", "/zip-http-server", "/root.zip"]
+ENTRYPOINT ["/tini", "--", "/zip-http-server"]
+CMD ["/root.zip"]

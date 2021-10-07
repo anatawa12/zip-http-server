@@ -17,10 +17,27 @@ They can be changed in the feature.
 
 This server is arrival on [ghcr.io, github packages container registry][ghcr.io].
 
-Currently, custom port, address, location of zip is not yet supported but will be supported.
-
 ```shell
 docker run -p 80:80 -v '/path/to/zip/file:/root.zip' ghcr.io/anatawa12/zip-http-server 
+```
+
+You can specify path to zip and listening ports as parameters of docker run.
+
+```shell
+# listen on 8080 on ipv6
+docker run \
+    -p 8080:8080 \
+    -v '/path/to.zip:/root.zip' \
+    ghcr.io/anatawa12/zip-http-server \
+    /root.zip --address [::]:8080
+# listen on unix domain socket
+docker run \
+    -v '/path/dir:/server/' \
+    -v '/path/to.zip:/root.zip' \
+    ghcr.io/anatawa12/zip-http-server \
+    /root.zip --address unix:/server/server.sock
+# See this for All Options
+docker run ghcr.io/anatawa12/zip-http-server --help
 ```
 
 [ghcr.io]: https://ghcr.io/
