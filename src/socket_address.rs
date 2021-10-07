@@ -111,6 +111,35 @@ impl std::fmt::Display for AddrParseError {
 
 impl Error for AddrParseError {}
 
+pub(crate) struct MultiIncoming<T>(Vec<T>);
+
+impl<T: Accept> MultiIncoming<T> {
+    pub(crate) fn new(vec: Vec<T>) -> Self {
+        Self(vec)
+    }
+
+    pub(crate) fn bind_hyper(self) -> HyperBuilder<Self> {
+        HyperServer::builder(self)
+    }
+}
+
+impl<T: Accept + Unpin> Accept for MultiIncoming<T> {
+    type Conn = T::Conn;
+    type Error = T::Error;
+
+    fn poll_accept(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Self::Conn, Self::Error>>> {
+        for x in &mut Pin::into_inner(self).0 {
+            if let Poll::Ready(v) = Pin::new(x).poll_accept(cx) {
+                return Poll::Ready(v);
+            }
+        }
+        Poll::Pending
+    }
+}
+
 include!("socket_address_macro.rs");
 
 tcp_unix_impl! {
