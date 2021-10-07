@@ -1,5 +1,6 @@
 mod socket_address;
 
+use crate::socket_address::SocketAddress;
 use clap::Clap;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Response};
@@ -7,8 +8,8 @@ use simple_logger::SimpleLogger;
 use std::convert::Infallible;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::net::IpAddr;
 use std::path::PathBuf;
+use std::process::exit;
 use std::sync::Arc;
 use zip::result::ZipError;
 use zip::ZipArchive;
@@ -18,11 +19,8 @@ use zip::ZipArchive;
 struct Opts {
     zip_file: PathBuf,
     /// Sets a custom config file. Could have been an Option<T> with no default too
-    #[clap(short, long, default_value = "0.0.0.0")]
-    address: IpAddr,
-    /// Sets a custom config file. Could have been an Option<T> with no default too
-    #[clap(short, long, default_value = "80")]
-    port: u16,
+    #[clap(short, long, default_value = ":80")]
+    address: SocketAddress,
 }
 
 #[tokio::main]
@@ -64,7 +62,16 @@ async fn main() {
         }
     });
 
-    let server = hyper::Server::bind(&(options.address, options.port).into()).serve(make_svc);
+    let address = options.address;
+
+    let server = address
+        .clone()
+        .bind_hyper()
+        .unwrap_or_else(|e| {
+            log::error!("can't listen {}: {}", &address, e);
+            exit(-1);
+        })
+        .serve(make_svc);
 
     log::info!("server started!");
     // Run forever-ish...
