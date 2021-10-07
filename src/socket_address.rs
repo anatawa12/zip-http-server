@@ -33,20 +33,16 @@ fn hyper_to_io(err: hyper::Error) -> io::Error {
 }
 
 impl SocketAddress {
-    pub(crate) fn bind_hyper(self) -> io::Result<HyperBuilder<Incoming>> {
+    pub(crate) fn bind(self) -> io::Result<Incoming> {
         match self {
             IPV4(addr) => AddrIncomingTCP::bind(&addr.into())
                 .map_err(hyper_to_io)
-                .map(Incoming::TCP)
-                .map(HyperServer::builder),
+                .map(Incoming::TCP),
             IPV6(addr) => AddrIncomingTCP::bind(&addr.into())
                 .map_err(hyper_to_io)
-                .map(Incoming::TCP)
-                .map(HyperServer::builder),
+                .map(Incoming::TCP),
             #[cfg(unix)]
-            UnixDomainSocket(path) => SocketIncoming::bind(path)
-                .map(Incoming::UnixDomainSocket)
-                .map(HyperServer::builder),
+            UnixDomainSocket(path) => SocketIncoming::bind(path).map(Incoming::UnixDomainSocket),
         }
     }
 }
@@ -110,6 +106,35 @@ impl std::fmt::Display for AddrParseError {
 }
 
 impl Error for AddrParseError {}
+
+pub(crate) struct MultiIncoming<T>(Vec<T>);
+
+impl<T: Accept> MultiIncoming<T> {
+    pub(crate) fn new(vec: Vec<T>) -> Self {
+        Self(vec)
+    }
+
+    pub(crate) fn bind_hyper(self) -> HyperBuilder<Self> {
+        HyperServer::builder(self)
+    }
+}
+
+impl<T: Accept + Unpin> Accept for MultiIncoming<T> {
+    type Conn = T::Conn;
+    type Error = T::Error;
+
+    fn poll_accept(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Self::Conn, Self::Error>>> {
+        for x in &mut Pin::into_inner(self).0 {
+            if let Poll::Ready(v) = Pin::new(x).poll_accept(cx) {
+                return Poll::Ready(v);
+            }
+        }
+        Poll::Pending
+    }
+}
 
 include!("socket_address_macro.rs");
 
