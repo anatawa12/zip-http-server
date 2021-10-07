@@ -33,21 +33,21 @@ fn hyper_to_io(err: hyper::Error) -> io::Error {
 }
 
 impl SocketAddress {
-    pub(crate) fn bind_hyper(self) -> io::Result<HyperBuilder<Incoming>> {
+    pub(crate) fn bind(self) -> io::Result<Incoming> {
         match self {
             IPV4(addr) => AddrIncomingTCP::bind(&addr.into())
                 .map_err(hyper_to_io)
-                .map(Incoming::TCP)
-                .map(HyperServer::builder),
+                .map(Incoming::TCP),
             IPV6(addr) => AddrIncomingTCP::bind(&addr.into())
                 .map_err(hyper_to_io)
-                .map(Incoming::TCP)
-                .map(HyperServer::builder),
+                .map(Incoming::TCP),
             #[cfg(unix)]
-            UnixDomainSocket(path) => SocketIncoming::bind(path)
-                .map(Incoming::UnixDomainSocket)
-                .map(HyperServer::builder),
+            UnixDomainSocket(path) => SocketIncoming::bind(path).map(Incoming::UnixDomainSocket),
         }
+    }
+
+    pub(crate) fn bind_hyper(self) -> io::Result<HyperBuilder<Incoming>> {
+        self.bind().map(HyperServer::builder)
     }
 }
 
