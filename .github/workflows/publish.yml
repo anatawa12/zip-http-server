@@ -87,7 +87,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: built-${{ matrix.target }}
-          path: target/${{ matrix.triple }}/release/discord-rcon
+          path: target/${{ matrix.triple }}/release/zip-http-server
 
   publish:
     name: Build Docker and Publish
