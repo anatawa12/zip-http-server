@@ -11,6 +11,8 @@ use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
+use atomic_take::AtomicTake;
+use futures_channel::oneshot::Sender;
 use zip::result::ZipError;
 use zip::ZipArchive;
 
@@ -19,7 +21,13 @@ use zip::ZipArchive;
 struct Opts {
     zip_file: PathBuf,
     /// The address list to listen
-    #[clap(short, long, multiple_occurrences = true, multiple_values = false, default_value = ":80")]
+    #[clap(
+        short,
+        long,
+        multiple_occurrences = true,
+        multiple_values = false,
+        default_value = ":80"
+    )]
     address: Vec<SocketAddress>,
 }
 
@@ -68,7 +76,7 @@ async fn main() {
     }
 
     let mut incomes = Vec::with_capacity(options.address.len());
-    for address in options.address {
+    for address in &options.address {
         incomes.push(address.clone().bind().unwrap_or_else(|e| {
             log::error!("can't listen {}: {}", &address, e);
             exit(-1);
@@ -76,9 +84,14 @@ async fn main() {
         log::info!("listening on {}", address);
     }
 
+    let (sender, receiver) = futures_channel::oneshot::channel::<()>();
+
+    handle_signal(sender);
+
     let server = MultiIncoming::new(incomes)
         .bind_hyper()
-        .serve(make_svc);
+        .serve(make_svc)
+        .with_graceful_shutdown(async { receiver.await.ok(); });
 
     log::info!("server started!");
     // Run forever-ish...
@@ -149,4 +162,47 @@ fn handle_blocking(zip_file: Arc<PathBuf>, mut name: String) -> Result<Vec<u8>, 
     file.read_to_end(&mut vec)?;
 
     Ok(vec)
+}
+
+macro_rules! handle_signal {
+    ($sender: ident, $new_handler: expr, $name: expr) => {
+        (|| {
+            let mut handler = match $new_handler {
+                Ok(handler) => handler,
+                Err(err) => {
+                    log::error!("failed to create signal handler for {}: {}", $name, err);
+                    return
+                }
+            };
+            let sender = $sender.clone();
+            tokio::spawn(async move {
+                while let Some(_) = handler.recv().await {
+                    if let Some(sender) = sender.take() {
+                        sender.send(()).ok();
+                    } else {
+                        break
+                    };
+                }
+            });
+        })();
+    };
+}
+
+#[cfg(unix)]
+fn handle_signal(sender: Sender<()>) {
+    use tokio::signal::unix::{signal, SignalKind};
+    let sender = Arc::new(AtomicTake::new(sender));
+
+    handle_signal!(sender, signal(SignalKind::interrupt()), "SIGINT");
+    handle_signal!(sender, signal(SignalKind::terminate()), "SIGTERM");
+}
+
+#[cfg(windows)]
+fn handle_signal(sender: Sender<()>) {
+    use tokio::signal::windows::{ctrl_break, ctrl_c};
+
+    let sender = Arc::new(AtomicTake::new(sender));
+
+    handle_signal!(sender, ctrl_c(), "SIGINT");
+    handle_signal!(sender, ctrl_break(), "SIGBREAK");
 }
