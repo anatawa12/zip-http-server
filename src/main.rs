@@ -77,10 +77,15 @@ async fn main() {
 
     let mut incomes = Vec::with_capacity(options.address.len());
     for address in &options.address {
-        incomes.push(address.clone().bind().unwrap_or_else(|e| {
-            log::error!("can't listen {}: {}", &address, e);
-            exit(-1);
-        }));
+        let incoming = match address.clone().bind() {
+            Ok(incoming) => incoming,
+            Err(e) => {
+                log::error!("can't listen {}: {}", &address, e);
+                clean_up(&options.address).await;
+                exit(-1);
+            }
+        };
+        incomes.push(incoming);
         log::info!("listening on {}", address);
     }
 
@@ -98,6 +103,8 @@ async fn main() {
     if let Err(err) = server.await {
         log::error!("server error: {}", err);
     }
+
+    clean_up(&options.address).await;
 }
 
 fn internal_server_error() -> Response<Body> {
@@ -162,6 +169,14 @@ fn handle_blocking(zip_file: Arc<PathBuf>, mut name: String) -> Result<Vec<u8>, 
     file.read_to_end(&mut vec)?;
 
     Ok(vec)
+}
+
+async fn clean_up(addresses: &[SocketAddress]) {
+    for address in addresses {
+        if let Some(err) = address.clean_up().await.err() {
+            log::error!("cleanup of {} error: {}", address, err);
+        }
+    }
 }
 
 macro_rules! handle_signal {

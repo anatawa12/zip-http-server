@@ -813,6 +813,7 @@ dependencies = [
  "atomic-take",
  "clap",
  "futures-channel",
+ "futures-util",
  "hyper",
  "hyperlocal",
  "log",
