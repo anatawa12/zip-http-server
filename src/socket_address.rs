@@ -45,6 +45,18 @@ impl SocketAddress {
             UnixDomainSocket(path) => SocketIncoming::bind(path).map(Incoming::UnixDomainSocket),
         }
     }
+
+    pub(crate) async fn clean_up(&self) -> io::Result<()> {
+        match self {
+            IPV4(_) => {}
+            IPV6(_) => {}
+            #[cfg(unix)]
+            UnixDomainSocket(path) => {
+                tokio::fs::remove_file(path).await?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl FromStr for SocketAddress {
