@@ -19,7 +19,7 @@ include = [
 ]
 
 [dependencies]
-clap = "3.0.12"
+clap = { version = "3.0.12", features = ["derive"] }
 hyper = { version = "0.14", features = ["http1", "server", "tcp"] }
 log = "0.4"
 mime_guess = "2"
