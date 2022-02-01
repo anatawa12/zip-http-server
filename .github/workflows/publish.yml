@@ -157,6 +157,7 @@ jobs:
           git push -u origin master
       - name: Update To Next Version
         run: |
+          set-git-user anatawa12-bot
           VERSION="$(get-version)"
           VERSION="$(version-next "$VERSION")"
           set-version "$(version-snapshot "$VERSION")"
