@@ -153,6 +153,7 @@ jobs:
           # create master and push
           git switch -c master
           git fetch origin master --depth=1
+          git log --all --graph
           git push -u origin master
       - name: Update To Next Version
         run: |
