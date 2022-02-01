@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "zip-http-server"
-version = "0.2.2-SNAPSHOT"
+version = "0.2.2"
 dependencies = [
  "atomic-take",
  "clap",
